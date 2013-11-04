@@ -1,0 +1,15 @@
+NameVirtualHost *:80
+
+<VirtualHost *:80>
+    ServerAdmin webmaster@basercms.net
+    DocumentRoot /vagrant_data/app/webroot
+    ServerName dev-local.basercms.net
+    ErrorLog logs/dev-local.basercms.net-error_log
+    CustomLog logs/dev-local.basercms.net-access_log common
+    <Directory "/vagrant_data">
+        Options FollowSymLinks
+        AllowOverride All
+        Order deny,allow
+        Allow from all
+    </Directory>
+</VirtualHost>
