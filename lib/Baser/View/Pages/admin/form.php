@@ -486,6 +486,7 @@ function pageTypeChengeHandler() {
 				<?php endif; ?>
 			</td>
 		</tr>
+		<?php echo $this->BcForm->getAddonsInput(); ?>
 	</table>
 </div>
 
@@ -566,6 +567,7 @@ function pageTypeChengeHandler() {
 			</td>
 		</tr>
 		<?php endif; ?>
+		<?php echo $this->BcForm->getAddonsInput('options'); ?>
 	</table>
 </div>
 <div class="submit">

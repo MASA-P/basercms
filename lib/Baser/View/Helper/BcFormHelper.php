@@ -1280,4 +1280,68 @@ DOC_END;
 
 	  } */
 
+
+/**
+ * アドオン追加フォームの登録
+ * 
+ * @param string $title		項目名
+ * @param string $form		入力フォーム。基本はBcFormヘルパー内のメソッドの出力結果を用いるようにする(XSS注意)
+ * @param string $type		フォームのタイプ。'default'は通常入力、'options'はオプション項目。デフォルトは'default'
+ * @param input $priority	優先順。数字が小さい程上位に。同じ順位の場合は下に。デフォルトは100
+ * @return void
+ * @access public
+ */
+	public function addAddonsInput($title, $form, $type = 'default', $priority = 100) {
+		$bcFormAddonInput =& $this->_View->viewVars['BcFormAddonInput'];
+
+		if (!isset($bcFormAddonInput[$type])) {
+			$bcFormAddonInput[$type] = array();
+		}
+		if (!isset($bcFormAddonInput[$type][$priority])) {
+			$bcFormAddonInput[$type][$priority] = array();
+		}
+		$bcFormAddonInput[$type][$priority][] = array(
+			'title' => $title,
+			'input' => $form
+		);
+	}
+
+/**
+ * アドオン追加フォームの入手(ビュー表示用)
+ * 
+ * @param string $type		'default'は通常入力、'options'はオプション項目
+ * @return string			登録されているフォーム(整形済み)
+ * @access public
+ */
+	public function getAddonsInput($type = 'default') {
+		$str = null;
+		$displayInputs = array();
+		$bcFormAddonInput =& $this->_View->viewVars['BcFormAddonInput'];
+
+		if (!empty($bcFormAddonInput[$type])) {
+			$tmpInputs = $bcFormAddonInput[$type];
+			ksort($tmpInputs);
+			foreach ($tmpInputs as $inputs) {
+				if (!empty($inputs)) {
+					$displayInputs = array_merge($displayInputs, $inputs);
+				}
+			}
+			if (empty($displayInputs)) {
+				return null;
+			}
+
+			foreach ($displayInputs as $input) {
+				if ($str !== null) {
+					$str .= "\t\t";
+				}
+				$str .= "<tr>\n";
+				$str .= "\t\t\t<th class=\"col-head\">" . $input['title'] . "</th>\n";
+				$str .= "\t\t\t<td class=\"col-input\">" . $input['input'] . "</td>\n";
+				$str .= "\t\t</tr>\n";
+			}
+		}
+
+		return $str;
+	}
+
 }
