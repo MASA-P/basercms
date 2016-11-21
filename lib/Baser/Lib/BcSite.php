@@ -86,6 +86,8 @@ class BcSite {
 	public $useSubDomain;
 	
 	public $domainType;
+	
+	public $theme;
 
 /**
  * コンストラクタ
@@ -119,23 +121,17 @@ class BcSite {
 		$this->autoRedirect = $config['auto_redirect'];
 		$this->autoLink = $config['auto_link'];
 		$this->mainSiteId = $config['main_site_id'];
+		$this->theme = $config['theme'];
 		$this->useSubDomain = $config['use_subdomain'];
-		$this->domainType = BcSite::getDomainType($this->useSubDomain, $this->alias);
-	}
-	
-	public static function getDomainType($useSubDomain, $alias) {
-		if($useSubDomain) {
-			if(BcUtil::getSubDomain() == $alias) {
-				$domainType = 1;
-			} elseif(BcUtil::getMainFullDomain() != $alias) {
-				$domainType = 2;
+		if($this->useSubDomain) {
+			if(!empty($config['domain_type'])) {
+				$this->domainType = $config['domain_type'];
 			} else {
-				$domainType = 0;
+				$this->domainType = 1;
 			}
 		} else {
-			$domainType = 0;
+			$this->domainType = 0;
 		}
-		return $domainType;
 	}
 
 /**
@@ -217,7 +213,7 @@ class BcSite {
 		$sites = self::findAll();
 		$subSite = null;
 
-		if($lang) {
+		if(!$lang) {
 			$lang = BcLang::findCurrent();	
 		}
 		if(!$agent) {
@@ -300,6 +296,21 @@ class BcSite {
 		return null;
 	}
 
+	public static function findByUrl($url) {
+		$sites = self::findAll();
+		$url = preg_replace('/(^\/|\/$)/', '', $url);
+		$urlAry = explode('/', $url);
+		for($i = count($urlAry);$i > 0;$i--) {
+			foreach($sites as $site) {
+				if(implode('/', $urlAry) == $site->alias) {
+					return $site;
+				}
+			}
+			unset($urlAry[$i - 1]);
+		}
+		return null;
+	}
+
 /**
  * 設定が有効かどうかを判定
  *
@@ -353,6 +364,7 @@ class BcSite {
 
 /**
  * エイリアスを反映したURLを生成
+ * 同一URL設定のみ利用可
  *
  * @param CakeRequest $request リクエスト
  * @return string
@@ -395,6 +407,10 @@ class BcSite {
 			return '/' . preg_replace('/^' . preg_quote($this->alias, '/') . '\//', '', $url);
 		}
 		return '/' . $url;
+	}
+
+	public static function flash() {
+		self::$_sites = null;
 	}
 
 }

@@ -415,17 +415,16 @@ class BcBaserHelper extends AppHelper {
 		if(empty($this->request->params['Site'])) {
 			return false;
 		}
-		$Site = ClassRegistry::init('Site');
-		$prefix = $Site->getPrefix(['Site' => $this->request->params['Site']]);
-		if (!$prefix) {
+		$site = BcSite::findCurrent(true);
+		if (!$site->alias || $site->sameMainUrl || $site->useSubDomain) {
 			return (
 				$this->request->url == false ||
 				$this->request->url == 'index'
 			);
 		} else {
 			return (
-				$this->request->url == $prefix . '/' ||
-				$this->request->url == $prefix . '/index'
+				$this->request->url == $site->alias . '/' ||
+				$this->request->url == $site->alias . '/index'
 			);
 		}
 	}
@@ -2626,15 +2625,20 @@ END_FLASH;
  */
 	public function afterRender($viewFile) {
 		parent::afterRender($viewFile);
-		$site = BcSite::findCurrent();
-		if(!$site) {
+		if(BcUtil::isAdminSystem()) {
 			return;
 		}
-		if($site->device != '') {
+		if(empty($this->request->params['Site'])) {
+			return;
+		}
+		if(isset($this->request->params['Site']['name']) && is_null($this->request->params['Site']['name'])) {
+			return;
+		}
+		if(isset($this->request->params['Site']['device']) && $this->request->params['Site']['device'] != '') {
 			return;
 		}
 		// 別URLの場合、alternateを出力（スマートフォンのみ対応）
-		$pureUrl = $site->getPureUrl($this->request->url);
+		$pureUrl = $this->BcContents->getPureUrl($this->request->url, $this->request->params['Site']['id']);
 		$agent = BcAgent::find('smartphone');
 		$subSite = BcSite::findCurrentSub(false, $agent);
 		if(!$subSite) {

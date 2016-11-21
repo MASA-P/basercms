@@ -75,6 +75,11 @@ class UpdatersController extends AppController {
 		$this->subDir = 'admin';
 	}
 
+	public function beforeRender() {
+		parent::beforeRender();
+		$this->set('favoriteBoxOpened', false);
+	}
+
 /**
  * コアのアップデート実行
  *
@@ -178,6 +183,8 @@ class UpdatersController extends AppController {
 		if ($this->request->data) {
 			$this->setUpdateLog('アップデートスクリプトの実行します。');
 			if ($this->_execScript($this->request->data['Updater']['plugin'], $this->request->data['Updater']['version'])) {
+				clearAllCache();
+				$this->BcManager->deployAdminAssets();
 				$this->setUpdateLog('アップデートスクリプトの実行が完了しました。');
 				$this->_writeUpdateLog();
 				$this->setMessage('アップデートスクリプトの実行が完了しました。<a href="#UpdateLog">アップデートログ</a>を確認してください。');
@@ -426,11 +433,13 @@ class UpdatersController extends AppController {
 			foreach ($updaters as $version => $updateVerPoint) {
 				$this->setUpdateLog('アップデートプログラム ' . $version . ' を実行します。');
 				ClassRegistry::flush();
+				BcSite::flash();
 				$this->_execScript($plugin, $version);
 			}
 		}
 
 		ClassRegistry::flush();
+		BcSite::flash();
 
 		if (!isset($updaters['test'])) {
 			if (!$plugin) {

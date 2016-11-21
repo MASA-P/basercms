@@ -197,7 +197,7 @@ class BlogHelper extends AppHelper {
  */
 	public function getPostLink($post, $title, $options = array()) {
 		$this->setContent($post['BlogPost']['blog_content_id']);
-		$url = $this->request->params['Content']['url'] . '/archives/' . $post['BlogPost']['no'];
+		$url = $this->request->params['Content']['url'] . 'archives/' . $post['BlogPost']['no'];
 		return $this->BcBaser->getLink($title, $url, $options);
 	}
 
@@ -209,7 +209,7 @@ class BlogHelper extends AppHelper {
  */
 	public function getPostLinkUrl($post) {
 		$this->setContent($post['BlogPost']['blog_content_id']);
-		return $this->url($this->request->params['Content']['url'].  '/archives/' . $post['BlogPost']['no']);
+		return $this->url($this->request->params['Content']['url'].  'archives/' . $post['BlogPost']['no']);
 	}
 
 /**
@@ -269,7 +269,7 @@ class BlogHelper extends AppHelper {
 				App::uses('HtmlHelper', 'View/Helper');
 				$this->Html = new HtmlHelper($this->_View);
 			}
-			$out .= '<p class="more">' . $this->Html->link($moreLink, $this->request->params['Content']['url'] . '/archives/' . $post['BlogPost']['no'] . '#post-detail', null, null, false) . '</p>';
+			$out .= '<p class="more">' . $this->Html->link($moreLink, $this->request->params['Content']['url'] . 'archives/' . $post['BlogPost']['no'] . '#post-detail', null, null, false) . '</p>';
 		}
 		return $out;
 	}
@@ -387,7 +387,7 @@ class BlogHelper extends AppHelper {
 		$tagLinks = array();
 		if (!empty($post['BlogTag'])) {
 			foreach ($post['BlogTag'] as $tag) {
-				$url = $this->request->params['Content']['url'] . '/archives/tag/' . $tag['name'];
+				$url = $this->request->params['Content']['url'] . 'archives/tag/' . $tag['name'];
 				$tagLinks[] = $this->BcBaser->getLink($tag['name'], $url);
 			}
 		}
@@ -432,7 +432,7 @@ class BlogHelper extends AppHelper {
 			$path = array_merge($path, $named);
 		}
 
-		$url = Router::url($this->request->params['Content']['url'] . '/archives/' . implode('/', $path));
+		$url = Router::url($this->request->params['Content']['url'] . 'archives/' . implode('/', $path));
 		$baseUrl = preg_replace('/\/$/', '', BC_BASE_URL);
 		return preg_replace('/^' . preg_quote($baseUrl, '/') . '/', '', $url);
 	}
@@ -546,16 +546,11 @@ class BlogHelper extends AppHelper {
  * @return void
  */
 	public function prevLink($post, $title = '', $htmlAttributes = array()) {
-		if (ClassRegistry::isKeySet('BlogPost')) {
-			$BlogPost = ClassRegistry::getObject('BlogPost');
-		} else {
-			$BlogPost = ClassRegistry::init('BlogPost');
-		}
+		$BlogPost = ClassRegistry::init('Blog.BlogPost');
 		$_htmlAttributes = array('class' => 'prev-link', 'arrow' => '≪ ');
 		$htmlAttributes = am($_htmlAttributes, $htmlAttributes);
 		$arrow = $htmlAttributes['arrow'];
 		unset($htmlAttributes['arrow']);
-		$BlogPost = ClassRegistry::getObject('BlogPost');
 		$conditions = array();
 		$conditions['BlogPost.posts_date <'] = $post['BlogPost']['posts_date'];
 		$conditions["BlogPost.blog_content_id"] = $post['BlogPost']['blog_content_id'];
@@ -573,7 +568,7 @@ class BlogHelper extends AppHelper {
 			if (!$title) {
 				$title = $arrow . $prevPost['BlogPost']['name'];
 			}
-			$this->BcBaser->link($title, $this->request->params['Content']['url'] . '/archives/' .$no, $htmlAttributes);
+			$this->BcBaser->link($title, $this->request->params['Content']['url'] . 'archives/' .$no, $htmlAttributes);
 		}
 	}
 
@@ -587,16 +582,11 @@ class BlogHelper extends AppHelper {
  * @return void
  */
 	public function nextLink($post, $title = '', $htmlAttributes = array()) {
-		if (ClassRegistry::isKeySet('BlogPost')) {
-			$BlogPost = ClassRegistry::getObject('BlogPost');
-		} else {
-			$BlogPost = ClassRegistry::init('BlogPost');
-		}
+		$BlogPost = ClassRegistry::init('Blog.BlogPost');
 		$_htmlAttributes = array('class' => 'next-link', 'arrow' => ' ≫');
 		$htmlAttributes = am($_htmlAttributes, $htmlAttributes);
 		$arrow = $htmlAttributes['arrow'];
 		unset($htmlAttributes['arrow']);
-		$BlogPost = ClassRegistry::getObject('BlogPost');
 		$conditions = array();
 		$conditions['BlogPost.posts_date >'] = $post['BlogPost']['posts_date'];
 		$conditions["BlogPost.blog_content_id"] = $post['BlogPost']['blog_content_id'];
@@ -614,48 +604,8 @@ class BlogHelper extends AppHelper {
 			if (!$title) {
 				$title = $nextPost['BlogPost']['name'] . $arrow;
 			}
-			$this->BcBaser->link($title, $this->request->params['Content']['url'] . '/archives/' . $no, $htmlAttributes);
+			$this->BcBaser->link($title, $this->request->params['Content']['url'] . 'archives/' . $no, $htmlAttributes);
 		}
-	}
-
-/**
- * レイアウトテンプレートを取得
- *
- * コンボボックスのソースとして利用
- *
- * @return array レイアウトテンプレート一覧
- * @todo 別のヘルパに移動
- */
-	public function getLayoutTemplates() {
-		$templatesPathes = array_merge(App::path('View', 'Blog'), App::path('View'));
-
-		if ($this->BcBaser->siteConfig['theme']) {
-			array_unshift($templatesPathes, WWW_ROOT . 'theme' . DS . $this->BcBaser->siteConfig['theme'] . DS);
-		}
-
-		$_templates = array();
-		foreach ($templatesPathes as $templatesPath) {
-			$templatesPath .= 'Layouts' . DS;
-			$folder = new Folder($templatesPath);
-			$files = $folder->read(true, true);
-			$foler = null;
-			if ($files[1]) {
-				if ($_templates) {
-					$_templates = am($_templates, $files[1]);
-				} else {
-					$_templates = $files[1];
-				}
-			}
-		}
-		$templates = array();
-		foreach ($_templates as $template) {
-			$ext = Configure::read('BcApp.templateExt');
-			if ($template != 'installations' . $ext) {
-				$template = basename($template, $ext);
-				$templates[$template] = $template;
-			}
-		}
-		return $templates;
 	}
 
 /**
@@ -666,10 +616,15 @@ class BlogHelper extends AppHelper {
  * @return array ブログテンプレート一覧
  * @todo 別のヘルパに移動
  */
-	public function getBlogTemplates() {
+	public function getBlogTemplates($siteId = 0) {
+		$site = BcSite::findById($siteId);
+		$theme = $this->BcBaser->siteConfig['theme'];
+		if($site->theme) {
+			$theme = $site->theme;
+		}
 		$templatesPathes = array_merge(App::path('View', 'Blog'), App::path('View'));
-		if ($this->BcBaser->siteConfig['theme']) {
-			array_unshift($templatesPathes, WWW_ROOT . 'theme' . DS . $this->BcBaser->siteConfig['theme'] . DS);
+		if ($theme) {
+			array_unshift($templatesPathes, WWW_ROOT . 'theme' . DS . $theme . DS);
 		}
 
 		$_templates = array();
@@ -764,7 +719,7 @@ class BlogHelper extends AppHelper {
 			$url = preg_replace('/^' . preg_quote($this->base, '/') . '/', '', $url);
 			$img = $this->BcBaser->getImg($url, $options);
 			if ($link) {
-				return $this->BcBaser->getLink($img, $this->request->params['Content']['url'] . '/archives/' . $post['BlogPost']['no']);
+				return $this->BcBaser->getLink($img, $this->request->params['Content']['url'] . 'archives/' . $post['BlogPost']['no']);
 			} else {
 				return $img;
 			}

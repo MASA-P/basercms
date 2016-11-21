@@ -15,25 +15,36 @@
  */
 $urlArray = explode('/', preg_replace('/(^\/|\/$)/', '', $this->request->data['Content']['url']));
 unset($urlArray[count($urlArray) -1]);
+if($this->request->data['Site']['same_main_url']) {
+	$site = BcSite::findById($this->request->data['Site']['main_site_id']);
+	array_shift($urlArray);
+	if($site->alias) {
+		$urlArray = explode('/', $site->alias) + $urlArray;
+	}
+}
 if($this->request->data['Site']['use_subdomain']) {
 	$host = $this->BcContents->getUrl('/' . $urlArray[0] . '/', true, $this->request->data['Site']['use_subdomain']);
-	unset($urlArray[0]);
+	array_shift($urlArray);
 } else {
 	$host = $this->BcContents->getUrl('/', true, $this->request->data['Site']['use_subdomain']);
 }
-$checkUrl = '/';
+if($this->request->data['Site']['alias']) {
+	$checkUrl = '/' . $this->request->data['Site']['alias'] . '/';
+} else {
+	$checkUrl = '/';
+}
 $Content = ClassRegistry::init('Content');
 foreach($urlArray as $key => $value) {
 	$checkUrl .= $value . '/';
 	$entityId = $Content->field('entity_id', ['Content.url' => $checkUrl]);
-	$urlArray[$key] = $this->BcBaser->getLink(urldecode($value), array('admin' => true, 'plugin' => '', 'controller' => 'content_folders', 'action' => 'edit', $entityId));
+	$urlArray[$key] = $this->BcBaser->getLink(urldecode($value), ['admin' => true, 'plugin' => '', 'controller' => 'content_folders', 'action' => 'edit', $entityId], ['forceTitle' => true]);
 }
 $baseUrl = '';
 if($urlArray) {
 	$baseUrl = implode('/', $urlArray) . '/';
 }
 $baseUrl = $host . $baseUrl;
-$pureUrl = $this->BcContents->getPureUrl($this->request->data['Content']['url'], $this->request->data['Site']['name'], $this->request->data['Site']['alias']);
+$pureUrl = $this->BcContents->getPureUrl($this->request->data['Content']['url'], $this->request->data['Site']['id']);
 $this->BcBaser->js('admin/contents/edit', false, array('id' => 'AdminContentsEditScript',
 	'data-fullurl' => $this->BcContents->getUrl($this->request->data['Content']['url'], true, $this->request->data['Site']['use_subdomain']),
 	'data-current' => json_encode($this->request->data),
@@ -173,7 +184,11 @@ $isOmitViewAction = $this->BcContents->settings[$this->request->data['Content'][
 					<?php if(!$disableEdit): ?>
 						<?php echo $this->BcForm->input('Content.description', array('type' => 'textarea', 'rows' => 2, 'placeholder' => $this->BcBaser->siteConfig['description'])) ?>　
 					<?php else: ?>
-						<?php echo $this->BcForm->value('Content.description') ?>
+						<?php if($this->BcForm->value('Content.exclude_search')): ?>
+							<?php echo $this->BcForm->value('Content.description') ?>
+						<?php else: ?>
+							<?php echo $this->BcBaser->siteConfig['description'] ?>
+						<?php endif ?>
 						<?php echo $this->BcForm->hidden('Content.description') ?>
 					<?php endif ?>
 					<?php echo $this->BcForm->error('Content.description') ?>
@@ -227,9 +242,23 @@ $isOmitViewAction = $this->BcContents->settings[$this->request->data['Content'][
 						<span style="white-space: nowrap"><?php echo $this->BcForm->input('Content.blank_link', array('type' => 'checkbox', 'label' => 'メニューのリンクを別ウィンドウ開く')) ?></span>
 					<?php else: ?>
 						<?php if($this->BcForm->value('Content.exclude_search')): ?>
-							サイト内検索の検索結果より除外する
+							<span style="white-space: nowrap">サイト内検索の検索結果より除外する</span>　
+						<?php else: ?>
+							<span style="white-space: nowrap">サイト内検索の検索結果より除外しない</span>　
 						<?php endif ?>
-						<?php echo $this->BcForm->hidden('Content.modified_date') ?>
+						<?php if($this->BcForm->value('Content.exclude_menu')): ?>
+							<span style="white-space: nowrap">公開ページのメニューより除外する</span>　
+						<?php else: ?>
+							<span style="white-space: nowrap">公開ページのメニューより除外しない</span>　
+						<?php endif ?>
+						<?php if($this->BcForm->value('Content.blank_link')): ?>
+							<span style="white-space: nowrap">メニューのリンクを別ウィンドウ開く</span>
+						<?php else: ?>
+							<span style="white-space: nowrap">メニューのリンクを同じウィンドウに開く</span>
+						<?php endif ?>
+						<?php echo $this->BcForm->hidden('Content.exclude_search') ?>
+						<?php echo $this->BcForm->hidden('Content.exclude_menu') ?>
+						<?php echo $this->BcForm->hidden('Content.blank_link') ?>
 					<?php endif ?>
 				</td>
 			</tr>
@@ -314,7 +343,7 @@ $isOmitViewAction = $this->BcContents->settings[$this->request->data['Content'][
 		</table>
 	</div>
 <?php endif ?>
-<?php if($this->request->action == 'admin_edit'): ?>
+<?php if($this->request->action == 'admin_edit' || $this->request->action == 'admin_edit_alias'): ?>
 	<div id="EtcSetting">
 		<div>
 		<p><span>コンテンツID</span>：<?php echo $this->request->data['Content']['id'] ?></p>

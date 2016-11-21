@@ -630,11 +630,8 @@ class Content extends AppModel {
  * @return mixed
  */
 	public function pureUrl($url, $siteId) {
-		$prefix = $this->Site->getPrefix($siteId);
-		if($prefix) {
-			$url = preg_replace('/^\/' . preg_quote($prefix, '/') . '\//', '/', $url);
-		}
-		return $url;
+		$site = BcSite::findById($siteId);
+		return $site->getPureUrl($url);
 	}
 
 /**
@@ -1045,28 +1042,35 @@ class Content extends AppModel {
  */
 	public function getUrl($url, $full = false, $useSubDomain = false) {
 		if($useSubDomain && !is_array($url)) {
-			$urlArray = explode('/', preg_replace('/(^\/|\/$)/', '', $url));
 			$subDomain = '';
-			$site = BcSite::findByAlias($urlArray[0]);
+			$site = BcSite::findByUrl($url);
+			$originUrl = $url;
 			if($site) {
 				$subDomain = $site->alias;
-				unset($urlArray[0]);
+				$originUrl = preg_replace('/^\/' . preg_quote($site->alias, '/') . '\//', '/', $url);
 			}
-			$originUrl = '/' . implode('/', $urlArray);
+			if($originUrl == '/') {
+				$urlArray = [];
+			} else {
+				$urlArray = explode('/', preg_replace('/(^\/|\/$)/', '', $originUrl));
+			}
 			if(preg_match('/\/$/', $url) && count($urlArray) > 0) {
 				$originUrl .= '/';
 			}
 			if($full) {
 				$fullUrl = fullUrl($originUrl);
 				if (BcUtil::isAdminSystem()) {
-					$domainType = BcSite::getDomainType($useSubDomain, $subDomain);
-					if($domainType == 1) {
+					if($site->domainType == 1) {
 						$fullUrlArray = explode('//', $fullUrl);
 						return $fullUrlArray[0] . '//' . $subDomain . '.' . $fullUrlArray[1];
-					} elseif($domainType == 2) {
+					} elseif($site->domainType == 2) {
 						$fullUrlArray = explode('//', $fullUrl);
 						$urlArray = explode('/', $fullUrlArray[1]);
 						unset($urlArray[0]);
+						if($site->sameMainUrl) {
+							$mainSite = BcSite::findById($site->mainSiteId);
+							$subDomain = $mainSite->alias;
+						}
 						return $fullUrlArray[0] . '//' . $subDomain . '/' . implode('/', $urlArray);
 					}
 				} else {
@@ -1077,9 +1081,16 @@ class Content extends AppModel {
 			}
 		} else {
 			if(BC_INSTALLED) {
-				$site = BcSite::findCurrent(false);
-				if($site && $site->sameMainUrl) {
-					$url = $site->getPureUrl($url);
+				if(!is_array($url)) {
+					$site = BcSite::findByUrl($url);
+					if($site && $site->sameMainUrl) {
+						$mainSite = BcSite::findById($site->mainSiteId);
+						$alias = $mainSite->alias;
+						if($alias) {
+							$alias = '/' . $alias;
+						}
+						$url = $alias . $site->getPureUrl($url);
+					}
 				}
 			}
 			if($full) {
